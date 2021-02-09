@@ -27,15 +27,15 @@ desde el que llama.
 """
 
 import os
-from ConfigParser import NoOptionError
+from . import util, corevars
+from .constants import MAP_SIZE_X, MAP_SIZE_Y
+from .bytequeue import ByteQueue
+from configparser import NoOptionError
 
-from bytequeue import ByteQueue
-from constants import MAP_SIZE_X, MAP_SIZE_Y
-import util, corevars
-
-       
 class MapFileTile(object):
-    __slots__ = ('blocked', 'layers', 'trigger', 'exit', 'npc', 'objidx', 'objcant')
+    __slots__ = ('blocked', 'layers', 'trigger',
+                 'exit', 'npc', 'objidx', 'objcant')
+
     def __init__(self):
         self.blocked = False
         self.layers = [None] * 4
@@ -49,17 +49,20 @@ class MapFileTile(object):
         return "MapFileTile<" + ', '.join(["%s=%s" % (x, str(getattr(self, x))) for x in MapFileTile.__slots__]) + ">"
 
     __str__ = __repr__
-    
+
     def __unicode__(self):
-        return unicode(str(self))
+        return str(bytes(self))
 
     def objdata(self):
         if self.objidx is not None:
             return corevars.objData[self.objidx]
         return None
 
+
 class MapFile(object):
-    __slots__ = ('mapNum', 'tiles', 'opts', 'mapDesc', 'mapVers', 'mapCrc', 'mapMagicWord')
+    __slots__ = ('mapNum', 'tiles', 'opts', 'mapDesc',
+                 'mapVers', 'mapCrc', 'mapMagicWord')
+
     def __init__(self, mapNum):
         self.mapNum = mapNum
         self.tiles = []
@@ -76,9 +79,9 @@ class MapFile(object):
     def __str__(self):
         return "MapFile<n=%d>" % self.n
 
+
 def loadMapFile(mapNum, fileNameBasePath):
     """Carga un mapa"""
-
 
     fileNameMap = os.path.join(fileNameBasePath, 'Mapa%d.map' % mapNum)
     fileNameInf = os.path.join(fileNameBasePath, 'Mapa%d.inf' % mapNum)
@@ -108,10 +111,10 @@ def loadMapFile(mapNum, fileNameBasePath):
     # Dat data
     datSection = "Mapa%d" % mapNum
 
-    mapOptions = ['Name', 'MusicNum', 'StartPos', 'MagiaSinEfecto', 
-        'InviSinEfecto', 'ResuSinEfecto', 'OcultarSinEfecto', 
-        'InvocarSinEfecto', 'NoEncriptarMP', 'RoboNpcsPermitido', 'Pk', 
-        'Terreno', 'Zona', 'Restringir', 'BACKUP']
+    mapOptions = ['Name', 'MusicNum', 'StartPos', 'MagiaSinEfecto',
+                  'InviSinEfecto', 'ResuSinEfecto', 'OcultarSinEfecto',
+                  'InvocarSinEfecto', 'NoEncriptarMP', 'RoboNpcsPermitido', 'Pk',
+                  'Terreno', 'Zona', 'Restringir', 'BACKUP']
 
     # Carga las opciones del mapa que están dentro del .dat.
     # Si una opcion no está la guarda como None.
@@ -119,16 +122,16 @@ def loadMapFile(mapNum, fileNameBasePath):
     for opt in mapOptions:
         try:
             mf.opts[opt] = datData.get(datSection, opt)
-        except NoOptionError, e:
+        except NoOptionError as e:
             mf.opts[opt] = None
 
     # Casos especiales: startpos es una 3-tupla.
 
     try:
         if mf.opts['StartPos'] is not None:
-            mf.opts['StartPos'] = tuple([int(x) \
-                for x in mf.opts['StartPos'].split("-")])
-    except ValueError, e:
+            mf.opts['StartPos'] = tuple([int(x)
+                                         for x in mf.opts['StartPos'].split("-")])
+    except ValueError as e:
         pass
 
     # ???
@@ -139,8 +142,8 @@ def loadMapFile(mapNum, fileNameBasePath):
     infData.readDouble()
     infData.readInt16()
 
-    for y in xrange(1, MAP_SIZE_Y+1):
-        for x in xrange(1, MAP_SIZE_X+1):
+    for y in range(1, MAP_SIZE_Y+1):
+        for x in range(1, MAP_SIZE_X+1):
             tile = MapFileTile()
 
             tileFlags = mapData.readInt8()
@@ -165,8 +168,8 @@ def loadMapFile(mapNum, fileNameBasePath):
             # Exit.
             if tileFlags & 1:
                 # Map, X, Y.
-                tile.exit = (infData.readInt16(), infData.readInt16(), \
-                    infData.readInt16())
+                tile.exit = (infData.readInt16(), infData.readInt16(),
+                             infData.readInt16())
 
             # NPC.
             if tileFlags & 2:
@@ -176,9 +179,9 @@ def loadMapFile(mapNum, fileNameBasePath):
             # Obj.
             if tileFlags & 4:
                 # Index, Amount.
-                tile.objidx, tile.objcant = (infData.readInt16(), infData.readInt16())
+                tile.objidx, tile.objcant = (
+                    infData.readInt16(), infData.readInt16())
 
             mf.tiles.append(tile)
 
     return mf
-

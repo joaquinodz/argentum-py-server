@@ -19,28 +19,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os, sys, datetime, time, gc, re, collections, random
-from ConfigParser import SafeConfigParser
+import os
+import sys
+import datetime
+import time
+import gc
+import re
+import collections
+import random
+from configparser import SafeConfigParser
 
-from aoprotocol import clientPackets, serverPackets, clientPacketsFlip
-from bytequeue import ByteQueue, ByteQueueError, ByteQueueInsufficientData
-from aocommands import *
-from util import debug_print
-from constants import *
-
-import mapfile, datfile, aoprotocol, corevars, gamerules, util
+from .aoprotocol import clientPackets, serverPackets, clientPacketsFlip
+from .bytequeue import ByteQueue, ByteQueueError, ByteQueueInsufficientData
+from .aocommands import *
+from .util import debug_print
+from .constants import *
+from . import mapfile, datfile, aoprotocol, corevars, gamerules, util
 
 try:
     import twisted
 except ImportError:
-    print "Es necesario instalar python-twisted"
+    print("Es necesario instalar python-twisted")
     sys.exit(1)
 
-if sys.platform == 'linux2': # yeah!
+if sys.platform == 'linux2':  # yeah!
     # En Linux usamos el reactor epoll() que es lo más.
     from twisted.internet import epollreactor
     epollreactor.install()
-elif sys.platform == 'win32': # rulz!
+elif sys.platform == 'win32':  # rulz!
     # En Windows usamos el reactor IOCP que es lo más.
     from twisted.internet import iocpreactor
     iocpreactor.install()
@@ -54,6 +60,7 @@ cmdDecoder = None       # Handler para recibir paquetes de los clientes
 ServerConfig = None
 
 # ---
+
 
 class AoProtocol(Protocol):
     """Interfaz con Twisted para el socket del cliente."""
@@ -113,7 +120,7 @@ class AoProtocol(Protocol):
     def _handleData(self):
         try:
             cmdDecoder.handleData(self)
-        except CriticalDecoderException, e:
+        except CriticalDecoderException as e:
             debug_print("CriticalDecoderException")
             self.loseConnection()
 
@@ -137,13 +144,16 @@ class AoProtocol(Protocol):
                 self.player.quit()
                 self.player = None
 
+
 class AoProtocolFactory(Factory):
     protocol = AoProtocol
+
 
 class GameServer(object):
     """
     Clase que se encarga del 'bookkeeping' de las conexiones y jugadores.
     """
+
     def __init__(self):
         self._players = set()
         self._playersByName = {}
@@ -170,7 +180,7 @@ class GameServer(object):
             return True
         return False
 
-    def playerJoin(self, p): 
+    def playerJoin(self, p):
         self._players.add(p)
         self._playersByName[p.playerName.lower()] = p
 
@@ -252,14 +262,15 @@ class GameServer(object):
     def connectionsList(self):
         return list(self._connections)
 
+
 class GameMap(object):
     """Un mapa"""
 
     def __init__(self, mapNum):
         self.players = set()
         self.mapNum = mapNum
-        self.mapFile = mapfile.loadMapFile(mapNum, \
-            ServerConfig.get('Core', 'MapsFilesPath'))
+        self.mapFile = mapfile.loadMapFile(mapNum,
+                                           ServerConfig.get('Core', 'MapsFilesPath'))
         self._playersMatrix = [None] * (MAP_SIZE_X * MAP_SIZE_Y)
 
     def isMapUnused(self):
@@ -309,8 +320,8 @@ class GameMap(object):
 
         mf = self.mapFile
 
-        for y in xrange(1, MAP_SIZE_Y + 1):
-            for x in xrange(1, MAP_SIZE_X + 1):
+        for y in range(1, MAP_SIZE_Y + 1):
+            for x in range(1, MAP_SIZE_X + 1):
                 obj = mf[x, y].objdata()
                 if obj is not None:
                     p.cmdout.sendObjectCreate(x, y, obj.GrhIndex)
@@ -331,7 +342,7 @@ class GameMap(object):
     def playerMove(self, p, oldpos, newpos):
         """
         p: player.
-        
+
         Mueve un jugador dentro del mapa, validando que newpos sea valida y
         si lo es, actualiza la pos del jugador y notifica al resto de los 
         pjs del mapa. En caso de pisar un tile exit cambia de mapa al jugador
@@ -406,7 +417,7 @@ class GameMap(object):
                 break
 
         if not found:
-            raise NoFreeSpaceOnMap()
+            raise gamerules.NoFreeSpaceOnMap()
 
         tile = self.mapFile[pos]
         tile.objidx = objidx
@@ -422,6 +433,7 @@ class GameMap(object):
                 p.cmdout.sendObjectCreate(x, y, obj.GrhIndex)
             else:
                 p.cmdout.sendObjectDelete(x, y)
+
 
 class GameMapList(object):
     def __init__(self, mapCount, maxActiveMaps):
@@ -455,13 +467,16 @@ class GameMapList(object):
 
 # Timer
 
+
 def onTimerSched():
     """Este timer se ejecuta cinco veces por segundo, cuidado con hacer demasiadas cosas."""
     pass
 
+
 def onTimer1():
     """Este timer se ejecuta cada un segundo."""
     pass
+
 
 def onTimer10():
     """Este timer se ejecuta cada 10 segundos."""
@@ -479,24 +494,25 @@ def onTimer10():
         if t - c.lastHandledPacket > maxTime:
             c.loseConnection()
 
+
 def onTimer60():
     """Este timer se ejecuta cada 60 segundos."""
     pass
 
 # Main
 
+
 def loadMaps():
     mapCount = ServerConfig.getint('Core', 'MapCount')
     mapLoadingMode = ServerConfig.get('Core', 'MapLoadingMode').lower()
     maxActiveMaps = ServerConfig.getint('Core', 'MaxActiveMapsCount')
 
-
     if mapLoadingMode == "full":
         corevars.mapData = GameMapList(mapCount, mapCount)
 
-        print "Cargando mapas... "
+        print("Cargando mapas... ")
 
-        for x in xrange(1, mapCount + 1):
+        for x in range(1, mapCount + 1):
             sys.stdout.write(str(x) + " ")
             sys.stdout.flush()
             corevars.mapData[x]
@@ -508,23 +524,27 @@ def loadMaps():
     elif mapLoadingMode == "lazy":
         corevars.mapData = GameMapList(mapCount, maxActiveMaps)
 
-        print "Carga de mapas en modo Lazy; se cargaran bajo demanda."
+        print("Carga de mapas en modo Lazy; se cargaran bajo demanda.")
     else:
-        raise Exception("Opcion no reconocida: MapLoadingMode=" \
-            + mapLoadingMode)
+        raise Exception(
+            "Opcion no reconocida: MapLoadingMode=" + mapLoadingMode)
+
 
 def loadFiles():
     datFilesPath = ServerConfig.get('Core', 'DatFilesPath')
-    
+
     # Objs.
-    corevars.objData = datfile.loadObjDat(os.path.join(datFilesPath, 'obj.dat'))
-    corevars.npcData = datfile.loadNPCsDat(os.path.join(datFilesPath, 'NPCs.dat'))
-    corevars.hechData = datfile.loadHechizosDat(os.path.join(datFilesPath, \
-        'Hechizos.dat'))
+    corevars.objData = datfile.loadObjDat(
+        os.path.join(datFilesPath, 'obj.dat'))
+    corevars.npcData = datfile.loadNPCsDat(
+        os.path.join(datFilesPath, 'NPCs.dat'))
+    corevars.hechData = datfile.loadHechizosDat(
+        os.path.join(datFilesPath, 'Hechizos.dat'))
 
     # Nombres prohibidos.
-    corevars.forbiddenNames = set([x.strip().lower() for x in \
-        open(os.path.join(datFilesPath, 'NombresInvalidos.txt'))])
+    corevars.forbiddenNames = set([x.strip().lower() for x in
+                                   open(os.path.join(datFilesPath, 'NombresInvalidos.txt'))])
+
 
 def loadServerConfig():
     global ServerConfig
@@ -534,7 +554,9 @@ def loadServerConfig():
     ServerConfig.readfp(codecs.open(sys.argv[1], 'r', 'utf-8'))
 
     if ServerConfig.get('Core', 'EncodingSanityCheck') != u'áéíóú.':
-        raise Exception('Error al validar la opcion EncodingSanityCheck del archivo de configuracion: ' + sys.argv[1])
+        raise Exception(
+            'Error al validar la opcion EncodingSanityCheck del archivo de configuracion: ' + sys.argv[1])
+
 
 def initServer():
     global cmdDecoder, gameServer
@@ -543,6 +565,7 @@ def initServer():
 
     cmdDecoder = ClientCommandsDecoder()
     gameServer = corevars.gameServer = GameServer()
+
 
 def runServer():
     listenPort = ServerConfig.getint('Core', 'ListenPort')
@@ -553,26 +576,27 @@ def runServer():
     task.LoopingCall(onTimer10).start(10)
     task.LoopingCall(onTimer60).start(60)
 
-    print "Escuchando en el puerto %d, reactor: %s" % ( \
-        listenPort, reactor.__class__.__name__)
-    print "Para cerrar el servidor presionar Control-C."
+    print("Escuchando en el puerto %d, reactor: %s" %
+          (listenPort, reactor.__class__.__name__))
+    print("Para cerrar el servidor presionar Control-C.")
 
     reactor.run()
 
+
 def main():
     print
-    print "Iniciando AONX Server ..."
+    print("Iniciando AONX Server ...")
     print
 
     # Acentos y caracteres especiales omitidos en todos los print para
     # mayor compatibilidad con terminales.
 
     if sys.version_info[:2] < (2, 6):
-        print "Se requiere Python 2.6+, version actual: "+str(sys.version_info)
+        print("Se requiere Python 2.6+, version actual: " + str(sys.version_info))
         sys.exit(1)
 
     if len(sys.argv) < 2:
-        print "Se debe indicar el archivo de configuracion a usar como primer parametro de la aplicacion. Ejemplo: runserver.py serversettings.txt"
+        print("Se debe indicar el archivo de configuracion a usar como primer parametro de la aplicacion. Ejemplo: python runserver.py serversettings.txt")
         sys.exit(1)
 
     startTime = datetime.datetime.now()
@@ -586,8 +610,7 @@ def main():
     #
 
     print
-    print "Iniciado. Tiempo de inicio del servidor: " + str(datetime.datetime.now() - startTime)
+    print("Iniciado. Tiempo de inicio del servidor: " + str(datetime.datetime.now() - startTime))
     print
 
     runServer()
-

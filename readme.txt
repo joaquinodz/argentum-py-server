@@ -14,10 +14,9 @@ de uso completa, ubicada dentro del archivo licence.txt.
 Instrucciones
 -------------
 
-Para ejecutar el servidor hace falta tener instalado Python y Twisted. En 
-Debian y Ubuntu eso se logra con:
+Para ejecutar el servidor hace falta tener instalado Python y Twisted.
 
-    aptitude install python-twisted
+    pip install twisted pypiwin32
 
 Una vez instalados, el servidor se inicia corriendo el script "runserver.py".
 

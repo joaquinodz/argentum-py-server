@@ -22,16 +22,20 @@
 Aca va todo lo que no encaja en otros modulos.
 """
 
-from ConfigParser import SafeConfigParser
 
+
+
+from configparser import SafeConfigParser
 def debug_print(*args):
-    print "[debug] ",
+    print("[debug] ",)
     for a in args:
-        print a,
+        print(a),
     print
+
 
 def between(x, a, b):
     return x >= a and x <= b
+
 
 def espiral(pos, lim=100):
     """Genera un patron de busqueda en forma de espiral."""
@@ -43,20 +47,23 @@ def espiral(pos, lim=100):
     s = 1
 
     while lim > 0:
-        for a in xrange(d):
+        for a in range(d):
             x = x + s
             lim = lim - 1
             yield (x, y)
-            if lim == 0: return
+            if lim == 0:
+                return
 
-        for a in xrange(d):
+        for a in range(d):
             y = y + s
             lim = lim - 1
             yield (x, y)
-            if lim == 0: return
+            if lim == 0:
+                return
 
         s = s * -1
         d = d + 1
+
 
 class MyConfigParser(SafeConfigParser):
     def read(self, *args, **kwargs):
@@ -86,8 +93,10 @@ class MyConfigParser(SafeConfigParser):
             val = val.split("'", 1)[0]
         return int(val)
 
+
 class positiverolist(object):
     __slots__ = ('data',)
+
     def __init__(self, data):
         self.data = data
 
@@ -98,4 +107,3 @@ class positiverolist(object):
 
     def __setitem__(self, i, v):
         raise TypeError('read only list')
-

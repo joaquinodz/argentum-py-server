@@ -20,13 +20,16 @@
 
 import struct
 
-import constants
+from . import constants
+
 
 class ByteQueueError(Exception):
     pass
 
+
 class ByteQueueInsufficientData(Exception):
     pass
+
 
 class ByteQueue(object):
     """
@@ -36,6 +39,7 @@ class ByteQueue(object):
     """
 
     __slots__ = ('data', 'pos', 'markpos', )
+
     def __init__(self, data=""):
         self.data = data
         self.pos = 0
@@ -51,7 +55,7 @@ class ByteQueue(object):
         """
         Destruye los bytes del buffer interno liberando la memoria 
         desde el inicio del buffer hasta el puntero pos interno.
-        
+
         Atencion: la funcion commit() no debe llamarse desde dentro
         de la misma ByteQueue ya que no es posible saber precisamente
         cuando hay que hacerlo.
@@ -87,11 +91,11 @@ class ByteQueue(object):
             raise ByteQueueInsufficientData()
 
         try:
-            # La funcion buffer() es como un slice[a:b] pero 
+            # La funcion memoryview() es como un slice[a:b] pero
             # no hace una copia de los datos.
-            return struct.unpack(fmt, buffer(self.data, self.pos, tam))
-        except struct.error, e:
-            raise ByteQueueError(str(e))
+            return struct.unpack(fmt, memoryview(self.data, self.pos, tam))
+        except struct.error as e:
+            raise ByteQueueError(bytes(e))
 
     def read(self, fmt):
         """Lee desde pos avanzando el puntero pos"""
@@ -178,7 +182,7 @@ class ByteQueue(object):
 
     def writeInt16(self, n):
         self.writeFmt('<h', n)
-    
+
     def writeInt32(self, n):
         self.writeFmt('<l', n)
 
@@ -195,13 +199,12 @@ class ByteQueue(object):
         self.writeInt8(1 if bool(n) else 0)
 
     def writeString(self, s):
-        if type(s) is unicode:
+        if type(s) is str:
             s = s.encode(constants.TEXT_ENCODING)
         self.writeInt16(len(s))
         self.data += s
 
     def writeStringFixed(self, s):
-        if type(s) is unicode:
+        if type(s) is str:
             s = s.encode(constants.TEXT_ENCODING)
         self.data += s
-

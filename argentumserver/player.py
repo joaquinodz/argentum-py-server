@@ -20,9 +20,10 @@
 
 import sys
 
-from constants import *
-import corevars as cv
-import gamerules, util
+from .constants import *
+from . import corevars as cv
+from . import gamerules, util
+
 
 def moveTo(pos, d):
     newpos = list(pos)
@@ -45,6 +46,7 @@ def moveTo(pos, d):
     else:
         return None
     return newpos
+
 
 class PlayerAttributes(object):
     def __init__(self):
@@ -70,10 +72,11 @@ class PlayerAttributes(object):
         self.elu = 0
         self.exp = 0
 
+
 class PlayerInventory(object):
     def __init__(self, player):
         self.player = player
-        self.items = [[None, 0, False] for x in xrange(NUMINVSLOTS)]
+        self.items = [[None, 0, False] for x in range(NUMINVSLOTS)]
 
     def __getitem__(self, n):
         assert n >= 1
@@ -90,7 +93,7 @@ class PlayerInventory(object):
         assert cv.objData[objidx] is not None
 
         r = []
-        
+
         # Busca algun slot que ya tenga el item.
         for i, x in enumerate(self.items):
             if x[0] == objidx and x[1] < MAXINVITEMS:
@@ -145,6 +148,7 @@ class PlayerInventory(object):
     def sortItems(self):
         self.items.sort(key=(lambda x: sys.maxint if x[0] is None else x[0]))
 
+
 class Player(object):
     """Un jugador"""
 
@@ -180,10 +184,10 @@ class Player(object):
         return id(self) == id(other)
 
     def start(self):
-        
+
         self.pos = [50, 50]
         self.heading = DIR_S
-        self.map = None # Cuando no esta en ningun mapa es None.
+        self.map = None  # Cuando no esta en ningun mapa es None.
 
         cv.mapData[1].playerJoin(self)
 
@@ -193,11 +197,12 @@ class Player(object):
         self.sendSpells()
 
         self.cmdout.sendUserIndexInServer(self.userIdx)
-        #self.sendUserCharIndexInServer()
+        # self.sendUserCharIndexInServer()
         self.cmdout.sendLogged(self.attrs.chrclass)
 
         self.cmdout.sendConsoleMsg(WELCOME_MSG, FONTTYPES['SERVER'])
-        self.cmdout.sendConsoleMsg(cv.ServerConfig.get('Core', 'WelcomeMessage').encode(TEXT_ENCODING), FONTTYPES['SERVER'])
+        self.cmdout.sendConsoleMsg(cv.ServerConfig.get(
+            'Core', 'WelcomeMessage').encode(TEXT_ENCODING), FONTTYPES['SERVER'])
 
     def quit(self):
         if not self.closing:
@@ -214,8 +219,8 @@ class Player(object):
         self.cmdout.sendPosUpdate(self.pos[0], self.pos[1])
 
     def sendUpdateHungerAndThirst(self):
-        self.cmdout.sendUpdateHungerAndThirst(self.attrs.sedMax, \
-            self.attrs.sed, self.attrs.hambreMax, self.attrs.hambre)
+        self.cmdout.sendUpdateHungerAndThirst(self.attrs.sedMax,
+                                              self.attrs.sed, self.attrs.hambreMax, self.attrs.hambre)
 
     def sendUpdateSta(self):
         self.cmdout.sendUpdateSta(self.attrs.sta)
@@ -224,25 +229,26 @@ class Player(object):
         self.cmdout.sendUpdateMana(self.attrs.mana)
 
     def sendUpdateUserStats(self):
-        self.cmdout.sendUpdateUserStats(self.attrs.hpMax, self.attrs.hp, \
-            self.attrs.manaMax, self.attrs.mana, self.attrs.staMax, \
-            self.attrs.sta, self.attrs.gld, self.attrs.elv, self.attrs.elu, \
-            self.attrs.exp)
+        self.cmdout.sendUpdateUserStats(self.attrs.hpMax, self.attrs.hp,
+                                        self.attrs.manaMax, self.attrs.mana, self.attrs.staMax,
+                                        self.attrs.sta, self.attrs.gld, self.attrs.elv, self.attrs.elu,
+                                        self.attrs.exp)
 
     def sendInventory(self, slot=None):
         """slot, objIdx, name, amount, equipped, grhIdx, objType, hitMax, hit, defMax, defMin, price"""
-        
+
         if slot is None:
-            for x in xrange(1, len(self.inventario) + 1):
+            for x in range(1, len(self.inventario) + 1):
                 self.sendInventory(x)
         else:
             # Ojo: slot empieza en 1.
             # FIXME: Enviar objetos reales.
-            self.cmdout.sendChangeInventorySlot(slot, 0, "", 0, 0, 0, 0, 0, 0, 0, 0, 0.0)
+            self.cmdout.sendChangeInventorySlot(
+                slot, 0, "", 0, 0, 0, 0, 0, 0, 0, 0, 0.0)
 
     def sendSpells(self, slot=None):
         if slot is None:
-            for x in xrange(1, len(self.attrs.hechizos) + 1):
+            for x in range(1, len(self.attrs.hechizos) + 1):
                 self.sendSpells(x)
         else:
             # Ojo: slot empieza en 1.
@@ -254,11 +260,11 @@ class Player(object):
         if newpos is None:
             return
 
-        try: # EAFP
+        try:  # EAFP
             self.heading = d
             oldpos = self.pos
             self.map.playerMove(self, oldpos, newpos)
-        except gamerules.GameLogicError, e: # Invalid pos
+        except gamerules.GameLogicError as e:  # Invalid pos
             self.sendPosUpdate()
 
     def m(self, msg, t=FONTTYPES['INFO']):
@@ -273,21 +279,21 @@ class Player(object):
         """chridx, body, head, heading, weapon, shield, helmet, fx, fxloops"""
 
         d = {'chridx': self.chridx,
-            'body': self.attrs.head,
-            'head': self.attrs.body,
-            'heading': self.heading,
-            'weapon': 0,
-            'shield': 0,
-            'helmet': 0,
-            'fx': 0, 
-            'fxloops': 0}
+             'body': self.attrs.head,
+             'head': self.attrs.body,
+             'heading': self.heading,
+             'weapon': 0,
+             'shield': 0,
+             'helmet': 0,
+             'fx': 0,
+             'fxloops': 0}
 
         if not forChange:
             d2 = {'x': self.pos[0],
-                'y': self.pos[1],
-                'name': self.playerName,
-                'nickColor': NICKCOLOR_CIUDADANO,
-                'priv': self.privileges}
+                  'y': self.pos[1],
+                  'name': self.playerName,
+                  'nickColor': NICKCOLOR_CIUDADANO,
+                  'priv': self.privileges}
             d.update(d2)
 
         return d
@@ -317,7 +323,8 @@ class Player(object):
             return
 
         for p in cv.gameServer.playersList():
-            p.cmdout.sendConsoleMsg(self.playerName + " %s (%d, %d): " % (act, self.pos[0], self.pos[1]) + msg, FONTTYPES['TALK'])
+            p.cmdout.sendConsoleMsg(self.playerName + " %s (%d, %d): " %
+                                    (act, self.pos[0], self.pos[1]) + msg, FONTTYPES['TALK'])
 
     def doPickUp(self):
 
@@ -356,7 +363,7 @@ class Player(object):
 
         try:
             self.map.dropObjAt(objidx, amount, self.pos)
-        except gamerules.NoFreeSpaceOnMap, e:
+        except gamerules.NoFreeSpaceOnMap as e:
             self.inventario.addItem(objidx, amount)
 
         self.sendInventory()
@@ -366,4 +373,3 @@ class Player(object):
 
     def doAttack(self):
         self.cmdout.sendConsoleMsg("Sin implementar.", FONTTYPES['SERVER'])
-

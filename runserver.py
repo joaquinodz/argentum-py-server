@@ -24,10 +24,9 @@ from argentumserver import core
 try:
     import twisted
 except ImportError:
-    print "Es necesario instalar python-twisted"
+    print("Es necesario instalar el paquete 'twisted' de pip")
     import sys
     sys.exit(1)
 
 if __name__ == '__main__':
     core.main()
-

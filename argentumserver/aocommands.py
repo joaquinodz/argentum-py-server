@@ -18,25 +18,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-__all__ = ['CommandsDecoderException', 'CriticalDecoderException', \
-    'ClientCommandsDecoder', 'ServerCommandsEncoder']
+__all__ = ['CommandsDecoderException', 'CriticalDecoderException',
+           'ClientCommandsDecoder', 'ServerCommandsEncoder']
 
 import time
 
-from bytequeue import ByteQueue, ByteQueueError, ByteQueueInsufficientData
-from aoprotocol import clientPackets, serverPackets, clientPacketsFlip
-from util import debug_print
-from gamerules import *
-from player import Player
-import aoprotocol, gamerules, constants, corevars
+from .bytequeue import ByteQueue, ByteQueueError, ByteQueueInsufficientData
+from .aoprotocol import clientPackets, serverPackets, clientPacketsFlip
+from .util import debug_print
+from .gamerules import *
+from .player import Player
+from . import aoprotocol, gamerules, constants, corevars
+
 
 class CommandsDecoderException(Exception):
     """Faltan datos para decodificar un comando del cliente"""
     pass
 
+
 class CriticalDecoderException(Exception):
     """Error critico en los datos del cliente; cerrar la conexion"""
     pass
+
 
 class ClientCommandsDecoder(object):
     """Conjunto de funciones para decodificar los datos que envia un cliente"""
@@ -47,11 +50,11 @@ class ClientCommandsDecoder(object):
         for cmdName, cmdId in clientPackets.items():
             self.cmds[cmdId] = getattr(self, "handleCmd" + cmdName, None)
 
-        missingHandlers = [x for x in dir(self) if x.startswith("handleCmd") \
-            and getattr(self, x) not in self.cmds]
+        missingHandlers = [x for x in dir(self) if x.startswith(
+            "handleCmd") and getattr(self, x) not in self.cmds]
 
         if len(missingHandlers) > 0:
-            print "Error critico: handlers no utilizados: ", missingHandlers
+            print("Error critico: handlers no utilizados: ", missingHandlers)
             assert False
 
     def handleData(self, prot):
@@ -73,8 +76,8 @@ class ClientCommandsDecoder(object):
                         raise CriticalDecoderException()
 
                     if self.cmds[cmd] is None:
-                        debug_print("cmd not implemented:", cmd, \
-                            "should be:", clientPacketsFlip.get(cmd, '?'))
+                        debug_print("cmd not implemented:", cmd,
+                                    "should be:", clientPacketsFlip.get(cmd, '?'))
                         raise CriticalDecoderException()
 
                     # Marca la posicion actual por si hay que hacer rollback.
@@ -82,7 +85,6 @@ class ClientCommandsDecoder(object):
 
                     # Invoca al handler del comando cmd.
                     self.cmds[cmd](prot, buf)
-
 
                 # La operacion commit() destruye los datos del buffer,
                 # por lo que para llamarla tengo que estar seguro
@@ -98,25 +100,26 @@ class ClientCommandsDecoder(object):
             except:
                 buf.rollback()
                 raise
-        except ByteQueueError, e:
+        except ByteQueueError as e:
             pass
             debug_print("ByteQueueError", e)
-        except ByteQueueInsufficientData, e:
+        except ByteQueueInsufficientData as e:
             pass
-        except CommandsDecoderException, e:
+        except CommandsDecoderException as e:
             pass
             # debug_print("CommandsDecoderException")
-        except CriticalDecoderException, e:
+        except CriticalDecoderException as e:
             if cmd is not None:
-                debug_print("CriticalDecoderException", cmd, \
-                    clientPacketsFlip.get(cmd, '?'), e)
+                debug_print("CriticalDecoderException", cmd,
+                            clientPacketsFlip.get(cmd, '?'), e)
             raise
-        except Exception, e:
+        except Exception as e:
             debug_print("handleData Exception: ", e)
             raise
 
     def CheckLogged(fOrig):
         """Decorator para verificar que el usuario esta logeado"""
+
         def fNew(self, prot, buf):
             if prot.player is None:
                 raise CriticalDecoderException()
@@ -125,6 +128,7 @@ class ClientCommandsDecoder(object):
 
     def CheckNotLogged(fOrig):
         """Decorator para verificar que el usuario no esta logeado"""
+
         def fNew(self, prot, buf):
             if prot.player is not None:
                 raise CriticalDecoderException()
@@ -138,8 +142,8 @@ class ClientCommandsDecoder(object):
 
         playerName = buf.readString()
         playerPass = buf.readString()
-        playerVers = '%d.%d.%d' % (buf.readInt8(), buf.readInt8(),\
-            buf.readInt8())
+        playerVers = '%d.%d.%d' % (
+            buf.readInt8(), buf.readInt8(), buf.readInt8())
 
         error = False
 
@@ -187,8 +191,8 @@ class ClientCommandsDecoder(object):
     @CheckLogged
     def handleCmdOnline(self, prot, buf, player):
         cmd = buf.readInt8()
-        player.cmdout.sendConsoleMsg(\
-            "Online: %d" % corevars.gameServer.playersCount(), \
+        player.cmdout.sendConsoleMsg(
+            "Online: %d" % corevars.gameServer.playersCount(),
             constants.FONTTYPES['SERVER'])
 
     @CheckLogged
@@ -390,7 +394,7 @@ class ClientCommandsDecoder(object):
     def handleCmdChangeHeading(self, prot, buf, player):
         cmd = buf.readInt8()
         heading = buf.readInt8()
-        
+
         if heading < 1 or heading > 4:
             raise CriticalDecoderException('Invalid heading')
 
@@ -931,6 +935,7 @@ class ClientCommandsDecoder(object):
         raise CriticalDecoderException('Not Implemented')
         # FIXME
 
+
 class ServerCommandsEncoder(object):
     """
     Conjunto de funciones para generar comandos hacia el cliente.
@@ -942,7 +947,7 @@ class ServerCommandsEncoder(object):
 
     def __init__(self, prot):
         self.buf = prot.outbuf
-        self.prot = prot # K-Pax.
+        self.prot = prot  # K-Pax.
 
     def sendConsoleMsg(self, msg, font):
         self.buf.writeInt8(serverPackets['ConsoleMsg'])
@@ -1638,4 +1643,3 @@ class ServerCommandsEncoder(object):
         # FIXME
 
         self.prot.flushOutBuf()
-

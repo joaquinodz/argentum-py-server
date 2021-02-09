@@ -31,52 +31,62 @@ existe un pequeño programa llamado "datfixer.py" para corregir los DATs y que
 ConfigParser los pueda entender.
 """
 
-import ConfigParser
 
-from util import MyConfigParser, positiverolist
 
+
+import configparser
+from .util import MyConfigParser, positiverolist
 class ObjItem(object):
-    __slots__ = ('Name', 'GrhIndex', 'ObjType', 'Agarrable', 'Valor', \
-        'Crucial')
+    __slots__ = ('Name', 'GrhIndex', 'ObjType', 'Agarrable', 'Valor',
+                 'Crucial')
     __tipos__ = (str, int, int, bool, int, bool,)
+
     def __init__(self):
         pass
+
 
 class NPCDat(object):
     __slots__ = ('Name', 'NpcType', 'Desc', 'Head', 'Body', 'Heading', )
     __tipos__ = (str, int, str, int, int, int)
+
     def __init__(self):
         pass
+
 
 class HechizoDat(object):
     __slots__ = ('Nombre', 'Desc', 'PalabrasMagicas')
     __tipos__ = (str, str, str)
+
     def __init__(self):
         pass
+
 
 def loadObjDat(fileName):
     parser = MyConfigParser()
     parser.read([fileName])
-    
+
     maxObj = parser.getint('INIT', 'NumOBJs')
-    return loadDatFile(parser, maxObj, ObjItem, ObjItem.__slots__, \
-        ObjItem.__tipos__, 'OBJ%d')
+    return loadDatFile(parser, maxObj, ObjItem, ObjItem.__slots__,
+                       ObjItem.__tipos__, 'OBJ%d')
+
 
 def loadNPCsDat(fileName):
     parser = MyConfigParser()
     parser.read([fileName])
-    
+
     maxNPCs = parser.getint('INIT', 'NumNPCs')
-    return loadDatFile(parser, maxNPCs, NPCDat, NPCDat.__slots__, \
-        NPCDat.__tipos__, 'NPC%d')
-   
+    return loadDatFile(parser, maxNPCs, NPCDat, NPCDat.__slots__,
+                       NPCDat.__tipos__, 'NPC%d')
+
+
 def loadHechizosDat(fileName):
     parser = MyConfigParser()
     parser.read([fileName])
-    
+
     maxHech = parser.getint('INIT', 'NumeroHechizos')
-    return loadDatFile(parser, maxHech, HechizoDat, HechizoDat.__slots__, \
-        HechizoDat.__tipos__, 'HECHIZO%d')
+    return loadDatFile(parser, maxHech, HechizoDat, HechizoDat.__slots__,
+                       HechizoDat.__tipos__, 'HECHIZO%d')
+
 
 def loadDatFile(parser, maxIdx, datItemClass, attrsList, tiposList, headerStr):
     """
@@ -85,7 +95,7 @@ def loadDatFile(parser, maxIdx, datItemClass, attrsList, tiposList, headerStr):
 
     datItemList = [None] * (maxIdx + 1)
 
-    for objIdx in xrange(1, maxIdx+1):
+    for objIdx in range(1, maxIdx+1):
         if not parser.has_section(headerStr % objIdx):
             continue
 
@@ -96,10 +106,9 @@ def loadDatFile(parser, maxIdx, datItemClass, attrsList, tiposList, headerStr):
         for attr, t in zip(attrsList, tiposList):
             try:
                 v = t(parser.get(headerStr % objIdx, attr))
-            except ConfigParser.NoOptionError, e:
+            except configparser.NoOptionError as e:
                 v = None
 
             setattr(o, attr, v)
 
     return positiverolist(datItemList)
-
