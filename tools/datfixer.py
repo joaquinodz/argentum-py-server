@@ -19,25 +19,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import sys, os, ConfigParser
+import sys
+import os
+import configparser
+
 
 def main():
     if len(sys.argv) < 3:
-        print "Forma de uso: datfixer.py fix archivo.dat"
+        print("Forma de uso: datfixer.py fix archivo.dat")
         sys.exit(1)
 
     if sys.argv[1] == "fix":
         fn = sys.argv[2]
         fixDatFile(fn, fn + ".fix")
 
-        # Hace un swap de los archivos. El archivo original queda con 
+        # Hace un swap de los archivos. El archivo original queda con
         # extension ".old".
 
 #        os.rename(fn, fn + ".old")
 #        os.rename(fn + ".fix", fn)
 
     if sys.argv[1] == "java":
-        r = ConfigParser.RawConfigParser()
+        r = configparser.RawConfigParser()
         f = open(sys.argv[2] + '.propperties', 'wb')
         r.read([sys.argv[2]])
         for s in r.sections():
@@ -46,6 +49,7 @@ def main():
                 f.write(s + "." + k + " = " + v + "\n")
             f.write("\n")
         f.close()
+
 
 def fixDatFile(fileNameSrc, fileNameDst):
     """
@@ -65,7 +69,7 @@ def fixDatFile(fileNameSrc, fileNameDst):
             currentSection = line
 
         # Las comillas simples rompen; no son comentarios.
-        
+
         if len(line.strip()) > 0 and line.strip()[0] == "'":
             # 'Hola
             line = line.replace("'", "; ")
@@ -94,6 +98,7 @@ def fixDatFile(fileNameSrc, fileNameDst):
 
     f_out.close()
     f_in.close()
+
 
 if __name__ == '__main__':
     main()
